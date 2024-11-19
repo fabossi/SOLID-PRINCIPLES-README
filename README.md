@@ -198,64 +198,469 @@ class RobotWorker implements Workable {
 }
 ```
 
-## 5. Dependency Inversion Principle (DIP)
+# 📚 Guia Completo: Princípios SOLID e GRASP em JavaScript
 
-Dependa de abstrações, não de implementações. Módulos de alto nível não devem depender de módulos de baixo nível. Ambos devem depender de abstrações.
+## 🎯 Introdução
 
-**Exemplo:**
+Este guia demonstra a implementação dos princípios SOLID e GRASP usando JavaScript moderno, com exemplos práticos e explicações detalhadas.
 
-```typescript
-// Violando o DIP: A classe depende de uma implementação concreta.
-class LightBulb {
-  turnOn() {
-    console.log("Light bulb is on");
-  }
+## 📌 SOLID em JavaScript
 
-  turnOff() {
-    console.log("Light bulb is off");
-  }
+### 1. S - Single Responsibility Principle (Princípio da Responsabilidade Única)
+
+```javascript
+// ❌ RUIM: Classe com múltiplas responsabilidades
+class User {
+    constructor(name, email) {
+        this.name = name;
+        this.email = email;
+    }
+
+    // Responsabilidade 1: Validação de dados
+    validateEmail() {
+        return this.email.includes('@');
+    }
+
+    // Responsabilidade 2: Persistência de dados
+    saveToDatabase() {
+        // Código para salvar no banco de dados
+        console.log(`Salvando usuário ${this.name} no banco de dados`);
+    }
+
+    // Responsabilidade 3: Envio de email
+    sendWelcomeEmail() {
+        // Código para enviar email
+        console.log(`Enviando email de boas-vindas para ${this.email}`);
+    }
 }
 
-class Switch {
-  private lightBulb: LightBulb;
-
-  constructor(lightBulb: LightBulb) {
-    this.lightBulb = lightBulb;
-  }
-
-  toggle() {
-    this.lightBulb.turnOn();
-  }
+// ✅ BOM: Separando responsabilidades
+class User {
+    constructor(name, email) {
+        this.name = name;
+        this.email = email;
+    }
 }
 
-// Aplicando o DIP: Dependendo de uma abstração (interface).
-interface Switchable {
-  turnOn(): void;
-  turnOff(): void;
+class UserValidator {
+    static validateEmail(email) {
+        return email.includes('@');
+    }
 }
 
-class LightBulb implements Switchable {
-  turnOn() {
-    console.log("Light bulb is on");
-  }
-
-  turnOff() {
-    console.log("Light bulb is off");
-  }
+class UserRepository {
+    saveUser(user) {
+        // Código para salvar no banco de dados
+        console.log(`Salvando usuário ${user.name} no banco de dados`);
+    }
 }
 
-class Switch {
-  private device: Switchable;
+class EmailService {
+    sendWelcomeEmail(user) {
+        // Código para enviar email
+        console.log(`Enviando email de boas-vindas para ${user.email}`);
+    }
+}
 
-  constructor(device: Switchable) {
-    this.device = device;
-  }
+// Uso:
+const user = new User('João', 'joao@email.com');
+const validator = new UserValidator();
+const repository = new UserRepository();
+const emailService = new EmailService();
 
-  toggle() {
-    this.device.turnOn();
-  }
+if (UserValidator.validateEmail(user.email)) {
+    repository.saveUser(user);
+    emailService.sendWelcomeEmail(user);
 }
 ```
+
+### 2. O - Open/Closed Principle (Princípio Aberto/Fechado)
+
+```javascript
+// ❌ RUIM: Violando Open/Closed
+class DiscountCalculator {
+    calculateDiscount(order, customerType) {
+        if (customerType === 'regular') {
+            return order.total * 0.1;
+        } else if (customerType === 'vip') {
+            return order.total * 0.2;
+        } else if (customerType === 'premium') {  // Se precisar adicionar novo tipo, precisa modificar a classe
+            return order.total * 0.3;
+        }
+    }
+}
+
+// ✅ BOM: Usando Open/Closed
+class Discount {
+    calculate(order) {
+        throw new Error('Método calculate deve ser implementado');
+    }
+}
+
+class RegularDiscount extends Discount {
+    calculate(order) {
+        return order.total * 0.1;
+    }
+}
+
+class VIPDiscount extends Discount {
+    calculate(order) {
+        return order.total * 0.2;
+    }
+}
+
+class PremiumDiscount extends Discount {
+    calculate(order) {
+        return order.total * 0.3;
+    }
+}
+
+class DiscountCalculator {
+    constructor(discountStrategy) {
+        this.discountStrategy = discountStrategy;
+    }
+
+    calculateDiscount(order) {
+        return this.discountStrategy.calculate(order);
+    }
+}
+
+// Uso:
+const order = { total: 100 };
+const regularCalculator = new DiscountCalculator(new RegularDiscount());
+const vipCalculator = new DiscountCalculator(new VIPDiscount());
+
+console.log(regularCalculator.calculateDiscount(order)); // 10
+console.log(vipCalculator.calculateDiscount(order));    // 20
+```
+
+### 3. L - Liskov Substitution Principle (Princípio da Substituição de Liskov)
+
+```javascript
+// ❌ RUIM: Violando Liskov
+class Bird {
+    fly() {
+        return "Voando...";
+    }
+}
+
+class Penguin extends Bird {
+    fly() {
+        throw new Error("Não posso voar!"); // Viola Liskov!
+    }
+}
+
+// ✅ BOM: Respeitando Liskov
+class Animal {
+    move() {
+        throw new Error('Método move deve ser implementado');
+    }
+}
+
+class FlyingBird extends Animal {
+    move() {
+        return "Voando...";
+    }
+}
+
+class WalkingBird extends Animal {
+    move() {
+        return "Andando...";
+    }
+}
+
+class SwimmingBird extends Animal {
+    move() {
+        return "Nadando...";
+    }
+}
+
+// Uso:
+function moveAnimal(animal) {
+    return animal.move();
+}
+
+const eagle = new FlyingBird();
+const penguin = new WalkingBird();
+const duck = new SwimmingBird();
+
+console.log(moveAnimal(eagle));   // Voando...
+console.log(moveAnimal(penguin)); // Andando...
+console.log(moveAnimal(duck));    // Nadando...
+```
+
+### 4. I - Interface Segregation Principle (Princípio da Segregação de Interface)
+
+```javascript
+// ❌ RUIM: Interface muito grande
+class Printer {
+    print() { throw new Error('Método não implementado'); }
+    scan() { throw new Error('Método não implementado'); }
+    fax() { throw new Error('Método não implementado'); }
+    copy() { throw new Error('Método não implementado'); }
+}
+
+class SimplePrinter extends Printer {
+    print() {
+        console.log('Imprimindo...');
+    }
+    
+    // Precisa implementar métodos que não usa
+    scan() { throw new Error('Scanner não suportado'); }
+    fax() { throw new Error('Fax não suportado'); }
+    copy() { throw new Error('Cópia não suportada'); }
+}
+
+// ✅ BOM: Interfaces segregadas
+class Printable {
+    print() { throw new Error('Método não implementado'); }
+}
+
+class Scannable {
+    scan() { throw new Error('Método não implementado'); }
+}
+
+class Faxable {
+    fax() { throw new Error('Método não implementado'); }
+}
+
+class Copyable {
+    copy() { throw new Error('Método não implementado'); }
+}
+
+// Agora cada dispositivo implementa apenas o que precisa
+class SimplePrinter extends Printable {
+    print() {
+        console.log('Imprimindo...');
+    }
+}
+
+class AllInOnePrinter extends Printable {
+    print() {
+        console.log('Imprimindo...');
+    }
+    
+    scan() {
+        console.log('Escaneando...');
+    }
+    
+    copy() {
+        console.log('Copiando...');
+    }
+}
+
+// Uso:
+const simplePrinter = new SimplePrinter();
+simplePrinter.print(); // Funciona
+```
+
+### 5. D - Dependency Inversion Principle (Princípio da Inversão de Dependência)
+
+```javascript
+// ❌ RUIM: Dependência direta de implementações
+class MySQLDatabase {
+    save(data) {
+        console.log('Salvando no MySQL:', data);
+    }
+}
+
+class UserService {
+    constructor() {
+        this.database = new MySQLDatabase(); // Dependência direta!
+    }
+
+    saveUser(user) {
+        this.database.save(user);
+    }
+}
+
+// ✅ BOM: Usando injeção de dependência
+class Database {
+    save(data) {
+        throw new Error('Método save deve ser implementado');
+    }
+}
+
+class MySQLDatabase extends Database {
+    save(data) {
+        console.log('Salvando no MySQL:', data);
+    }
+}
+
+class MongoDatabase extends Database {
+    save(data) {
+        console.log('Salvando no MongoDB:', data);
+    }
+}
+
+class UserService {
+    constructor(database) {
+        this.database = database;
+    }
+
+    saveUser(user) {
+        this.database.save(user);
+    }
+}
+
+// Uso:
+const mysqlService = new UserService(new MySQLDatabase());
+const mongoService = new UserService(new MongoDatabase());
+
+mysqlService.saveUser({name: 'João'});
+mongoService.saveUser({name: 'Maria'});
+```
+
+## 📌 GRASP (General Responsibility Assignment Software Patterns)
+
+### 1. Creator (Criador)
+
+```javascript
+// ✅ BOM: Aplicando o padrão Creator
+class Product {
+    constructor(name, price) {
+        this.name = name;
+        this.price = price;
+    }
+}
+
+class OrderItem {
+    constructor(product, quantity) {
+        this.product = product;
+        this.quantity = quantity;
+        this.subtotal = this.calculateSubtotal();
+    }
+
+    calculateSubtotal() {
+        return this.product.price * this.quantity;
+    }
+}
+
+class Order {
+    constructor() {
+        this.items = [];
+        this.total = 0;
+    }
+
+    // Order é responsável por criar OrderItem porque:
+    // 1. Order contém OrderItem
+    // 2. Order tem as informações necessárias
+    addItem(product, quantity) {
+        const item = new OrderItem(product, quantity);
+        this.items.push(item);
+        this.calculateTotal();
+        return item;
+    }
+
+    calculateTotal() {
+        this.total = this.items.reduce((sum, item) => sum + item.subtotal, 0);
+    }
+}
+
+// Uso:
+const product = new Product('Notebook', 3000);
+const order = new Order();
+order.addItem(product, 2);
+console.log(order.total); // 6000
+```
+
+### 2. Information Expert (Especialista na Informação)
+
+```javascript
+// ✅ BOM: Aplicando Information Expert
+class CartItem {
+    constructor(product, quantity) {
+        this.product = product;
+        this.quantity = quantity;
+    }
+
+    // CartItem é expert em calcular seu próprio subtotal
+    getSubtotal() {
+        return this.product.price * this.quantity;
+    }
+}
+
+class ShoppingCart {
+    constructor() {
+        this.items = [];
+    }
+
+    addItem(product, quantity) {
+        const item = new CartItem(product, quantity);
+        this.items.push(item);
+    }
+
+    // ShoppingCart é expert em calcular o total
+    getTotal() {
+        return this.items.reduce((total, item) => total + item.getSubtotal(), 0);
+    }
+
+    // ShoppingCart é expert em verificar se está vazio
+    isEmpty() {
+        return this.items.length === 0;
+    }
+}
+
+// Uso:
+const cart = new ShoppingCart();
+cart.addItem(new Product('Mouse', 50), 2);
+cart.addItem(new Product('Teclado', 100), 1);
+
+console.log(cart.getTotal()); // 200
+console.log(cart.isEmpty()); // false
+```
+
+### 3. Low Coupling (Baixo Acoplamento)
+
+```javascript
+// ❌ RUIM: Alto acoplamento
+class OrderProcessor {
+    constructor() {
+        this.emailService = new EmailService();
+        this.inventoryService = new InventoryService();
+        this.paymentService = new PaymentService();
+    }
+
+    processOrder(order) {
+        this.paymentService.processPayment(order);
+        this.inventoryService.updateStock(order);
+        this.emailService.sendConfirmation(order);
+    }
+}
+
+// ✅ BOM: Baixo acoplamento usando injeção de dependência
+class OrderProcessor {
+    constructor(paymentService, inventoryService, emailService) {
+        this.paymentService = paymentService;
+        this.inventoryService = inventoryService;
+        this.emailService = emailService;
+    }
+
+    processOrder(order) {
+        this.paymentService.processPayment(order);
+        this.inventoryService.updateStock(order);
+        this.emailService.sendConfirmation(order);
+    }
+}
+
+// Uso:
+const processor = new OrderProcessor(
+    new PaymentService(),
+    new InventoryService(),
+    new EmailService()
+);
+```
+
+## 📚 Conclusão
+
+Seguir estes princípios ajuda a criar código:
+- Mais organizado
+- Fácil de manter
+- Mais testável
+- Mais flexível
+- Mais reutilizável
+
+Lembre-se: Não é necessário aplicar todos os princípios em todas as situações. Use-os como guias para melhorar seu código quando fizer sentido.
 
 ---
 
